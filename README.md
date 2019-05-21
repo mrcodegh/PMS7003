@@ -12,5 +12,6 @@ Features:
 Known Issues:
 - WiFiManager.cpp needs patch to compile - see issues in that library.
 - Access Point password protect didn't seem to work.
+- Server port is hard coded - adjust as needed.
 
 Thanks to library code providers listed at top of source code file!
