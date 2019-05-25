@@ -13,5 +13,11 @@ Known Issues:
 - WiFiManager.cpp needs patch to compile - see issues in that library.
 - Access Point password protect didn't seem to work.
 - Server port is hard coded - adjust as needed.
+- Had one instance of ESP8266 locking up during thunderstorm. No water on board but wondering about EMF from lightning.
+
+Project Construction:
+- I just used point-to-point wiring. PMS7003 adapter board is recommended.
+- Upside down blue electrical box from Home Depot seems to shield OK from rain. Recommend leave cutouts in. Oops, too late for me.
+- Fiberglass mesh was added after spider added web inside unit which corrupted readings. However, spider mites are smaller than the mesh size so will block only larger insects.
 
 Thanks to library code providers listed at top of source code file!
