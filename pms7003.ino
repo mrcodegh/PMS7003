@@ -56,6 +56,7 @@ unsigned int send_fail_cnt = 0;
 bool send_data_success = false;
 bool read_data_success = false;
 unsigned long update_timeout = 0;
+bool update_in_progress = false;
 const uint32_t pms_read_delay_ms = 30000;
 const unsigned long sleep_time_in_ms = (10 * 60 * 1000) - pms_read_delay_ms;  // approx poll rate of air sample less read delay
 const unsigned int retry_reset_connect_parms_cnt = 24*60*60*1000 / (pms_read_delay_ms + sleep_time_in_ms); // ~one day
@@ -133,13 +134,7 @@ void connect(bool clr_connect_info) {
       //add all your parameters here
       wifiManager.addParameter(&custom_host);
       wifiManager.addParameter(&custom_url);
-    
-      //reset settings - for testing
-      //wifiManager.resetSettings();
-      if (clr_connect_info || strlen(host) == 0 || strlen(url) == 0) {
-        wifiManager.resetSettings();
-      }
-    
+      
       //set minimu quality of signal so it ignores AP's under that quality
       //defaults to 8%
       //wifiManager.setMinimumSignalQuality();
@@ -149,7 +144,14 @@ void connect(bool clr_connect_info) {
       //in seconds
       
       wifiManager.setTimeout(10*60);  // 10 minutes
-    
+
+      //reset settings - for testing
+      //wifiManager.resetSettings();
+      if (clr_connect_info || strlen(host) == 0 || strlen(url) == 0) {
+        WiFi.begin("0","0");
+        //WiFi.disconnect(true);
+      }
+
       //fetches ssid and pass and tries to send air quality data
       //if it does not connect it starts an access point with the specified name
       //here  "AutoConnectAP"
@@ -325,6 +327,7 @@ void setup() {
 
   ArduinoOTA.onStart([]() {
     DBGL("OTA onstart");
+    update_in_progress = true;
     pms_next_action = pms_ota;
     pms_next_action_ms = millis();
     update_timeout = pms_next_action_ms + max_minutes_for_update*60*1000;
@@ -364,9 +367,11 @@ void loop() {
           pms_next_action_ms = millis() + 1000;            
         } else {
           DBGL("failed to read data from PMS7003");
-          delay(2000);
-          ESP.deepSleep(sleep_time_in_ms * 1000);
-          // No code path here
+          //Wait for potential OTA
+          pms_next_action = pms_ota;
+          pms_next_action_ms = millis();
+          update_timeout = pms_next_action_ms + max_minutes_for_update*60*1000;
+          connect(false);
         }
         break;
         
@@ -410,10 +415,9 @@ void loop() {
         break;
 
       case pms_ota:
-        // is trying to prevent battery empty preventing an honorable death on failed OTA?
-        if( millis() > update_timeout ) {
+        if( !update_in_progress && millis() > update_timeout ) {
           disconnect();
-          ESP.deepSleep(sleep_time_in_ms * 1000); // jump out of OTA mode - todo: danger while active
+          ESP.deepSleep(sleep_time_in_ms * 1000);
         }
         break;
     }
