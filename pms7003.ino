@@ -145,13 +145,6 @@ void connect(bool clr_connect_info) {
       
       wifiManager.setTimeout(10*60);  // 10 minutes
 
-      //reset settings - for testing
-      //wifiManager.resetSettings();
-      if (clr_connect_info || strlen(host) == 0 || strlen(url) == 0) {
-        WiFi.begin("0","0");
-        //WiFi.disconnect(true);
-      }
-
       //fetches ssid and pass and tries to send air quality data
       //if it does not connect it starts an access point with the specified name
       //here  "AutoConnectAP"
@@ -164,6 +157,11 @@ void connect(bool clr_connect_info) {
         } 
       }
     }
+  }
+  if (clr_connect_info || strlen(host) == 0 || strlen(url) == 0) {
+    WiFi.disconnect();
+    delay(2000);
+    ESP.deepSleep(1000 * 1000);
   }
 }
 
@@ -251,7 +249,7 @@ bool send_data() {
                     "&batt=" + String(vdd) + "&fail=" + String(send_fail_cnt);
 
   if (WiFi.status() != WL_CONNECTED) {
-    connect(false); // Connect, no reset on fail
+    connect(false); // Typical connect with valid SSID and URL
   }
 
   if (WiFi.status() == WL_CONNECTED) {
@@ -380,8 +378,12 @@ void loop() {
         if (send_data_success == false) {
           send_fail_cnt++;
           if (send_fail_cnt > retry_reset_connect_parms_cnt) {
+            set_serial(1);
+            pms.sleep();
             send_fail_cnt = 1;
+            save_config();
             connect(true);
+            // code path ends here
           }
           save_config();
           if (send_fail_cnt % retry_quit_cnt == 0) {
